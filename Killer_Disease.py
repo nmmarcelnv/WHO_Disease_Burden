@@ -43,11 +43,12 @@ def parse(country_code):
 	filename = "GHE2015_Deaths-2000-country.xls"
 	names = ['sex', 'GHEcode', 'category', 'GHEcause', 'group', 'dname', 'dclass']
 
-	df = pd.read_excel(filename, sheetname=1, skiprows=7)
+	df = pd.read_excel(filename, sheet_name=1, skiprows=7)
 	n = names.copy() 
 
 	for col in df.columns[7:]:
 		n.append(col)
+		#print(col)
 	df.columns = n
 	names.append(country_code)
 
@@ -147,6 +148,25 @@ def clean(df, country_code):
 		d[key] = df_key.ix[Top10Killer, ['category', 'dname', country_code]]
 	return d
 
+
+def get_country_names(filename):
+	
+	df = pd.read_excel(filename, sheet_name=1, skiprows=6, nrows=2)
+	cols = df.columns[7:len(df.columns)-1]
+	df = df[cols]
+	codes = df.iloc[0]
+	out=open('country_names.txt','w')
+	country_names = [name for name in df.columns] 
+	for i in range(len(country_names)):
+		name = country_names[i]
+		pos = name.find("(")
+		if pos != -1:
+			name=name[0:pos]
+		out.write(codes[i]+" "+name+"\n")
+		country_names[i]=name
+	out.close()
+	dic={codes[i]:country_names[i] for i in range(len(codes))}
+	return dic
 """
 def Print(df):
 	print ( tabulate(df, headers='keys', tablefmt='psql') )
@@ -161,14 +181,15 @@ if __name__=="__main__":
 	df_male   = dic['Males']
 	df_female = dic['Females']
 
+	countries=get_country_names('GHE2015_Deaths-2000-country.xls')
 	#create a color map RGB, each tuple will be used for a bar	
 	customcmp = [(i/10.0, i/40.0, 0.05) for i in range(len(dic['Males']))]
 
 	#create title for the plot
-	title='Top 10 Killer Diseases among males and females in '+country_code
+	title='Top 10 Killer Diseases among males and females in '+countries[country_code]
 
 	#create subplots for to plot data for males and females
-	fig, (axMale, axFemale)	= plt.subplots(2,1)
+	fig, (axMale, axFemale)	= plt.subplots(2,1, figsize=(10,8))
 
 	#set the disease name as the index, since df[coln].plot() uses the index a labels by default	
 	df_male.set_index('dname', drop=True, inplace=True)
@@ -188,7 +209,8 @@ if __name__=="__main__":
 					sharex=axMale,
 					label='Females') 
 
-	axFemale.set_xlabel('Number of Deaths (x 1000)')
+	axFemale.set_xticks([])
+	axFemale.set_xlabel('Death Rate ---->')
 	
 	#remove default y label
 	axFemale.set_ylabel('')
@@ -197,22 +219,22 @@ if __name__=="__main__":
 	#axFemale.spines["right"].set_visible(False)
 	seaborn.despine(left=True, top=True, right=True)
 
-	axMale.set_title(title, fontsize = 11.0) 
+	axMale.set_title(title, fontsize = 14.0) 
 
 	#write a text on figure. By default, position x, y are based on the data 
 	axFemale.text(  x= 0.80, y =0.80, s = 'Female',
                         transform=axFemale.transAxes, #change coordinate to plot scale
-                        fontsize = 12,
+                        fontsize = 14,
                         color = 'blue' )
 	
 
 	axMale.set_ylabel('')
 	axMale.text(	x= 0.80, y =0.80, s = 'Male', 
 			transform=axMale.transAxes,
-			fontsize = 12,
+			fontsize = 14,
 			color = 'blue' 
 		   )
 
 	fig.tight_layout()
-	plt.savefig('Killer_Diseases_'+country_code+'.png')
-	plt.show()
+	plt.savefig(country_code+'.png')
+	#plt.show()
