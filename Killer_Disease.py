@@ -41,7 +41,7 @@ def parse(country_code):
 	"""	
 	success = get_death_data()
 	filename = "GHE2015_Deaths-2000-country.xls"
-	names = ['sex', 'GHEcode', 'category', 'GHEcause', 'group', 'dname', 'dclass']
+	names = ['sex', 'GHEcode', 'Disease Category', 'GHEcause', 'group', 'Disease Name', 'dclass']
 
 	df = pd.read_excel(filename, sheet_name=1, skiprows=7)
 	n = names.copy() 
@@ -88,15 +88,15 @@ def clean_dname(df):
 	Basically drop irrelevant rows used as names"""
 
 	indices = df.index
-	df['Dname'] = df['dname'].apply(Isalpha)
-	allAs = df['dname']=='a.'
+	df['Dname'] = df['Disease Name'].apply(Isalpha)
+	allAs = df['Disease Name']=='a.'
 	ind = allAs[allAs==True].index
 
 	to_drop = ind-1
 	for n in range(len(indices)):
 		i = indices[n]
-		if ( Isalpha(df.ix[i, 'dname']) ) :
-			df.ix[i, 'dname'] = df.ix[i, 'dclass']	
+		if ( Isalpha(df.ix[i, 'Disease Name']) ) :
+			df.ix[i, 'Disease Name'] = df.ix[i, 'dclass']	
 				
 	df.drop(to_drop, axis=0, inplace=True)	
 	df.drop(['group', 'dclass', 'Dname'], axis=1, inplace=True)	
@@ -109,17 +109,32 @@ def clean_cathegory(df):
 	III= Injuries """
 
 	#get the row index for each of the categories
-	I   = df[ df['category']=='I.' ].index[0]
-	II  = df[ df['category']=='II.' ].index[0]
-	III = df[ df['category']=='III.' ].index[0]
+	I   = df[ df['Disease Category']=='I.' ].index[0]
+	II  = df[ df['Disease Category']=='II.' ].index[0]
+	III = df[ df['Disease Category']=='III.' ].index[0]
 
 	#Fill up empty space in data frame with category name
-	df.ix[0:II-1, 'category'] = 'Communicable'
-	df.ix[II:III-1, 'category'] = 'NCommunicable'
-	df.ix[III:, 'category'] = 'Injuries'
+	df.ix[0:II-1, 'Disease Category'] = 'Communicable'
+	df.ix[II:III-1, 'Disease Category'] = 'NCommunicable'
+	df.ix[III:, 'Disease Category'] = 'Injuries'
 	
 	#drop these rows, since they only contain summary for each category
 	df.drop([I,II,III], axis=0, inplace=True)
+
+
+def write_csv(df):
+
+	df.drop(df.index[0:2], axis=0, inplace=True)
+	
+	#do some cleaning
+	clean_cathegory(df)
+	clean_GHEcause(df)
+	clean_dname(df)
+	
+	#missing values are recorded as '.', replace with NA
+	df.replace('.', 'NaN', inplace=True)
+
+	df.to_csv('GHE2015_Deaths_2000_country.csv', index=False)
 
 
 def clean(df, country_code):
@@ -145,7 +160,8 @@ def clean(df, country_code):
 		#sort to get top ten
 		df_key.sort_values(country_code, ascending=False, inplace=True) 
 		Top10Killer = df_key.index[0:10]
-		d[key] = df_key.ix[Top10Killer, ['category', 'dname', country_code]]
+		#d[key] = df_key.ix[Top10Killer, ['Disease Category', 'Disease Name', country_code]] 
+		d[key] = df_key.ix[Top10Killer, :]
 	return d
 
 
@@ -181,6 +197,8 @@ if __name__=="__main__":
 	df_male   = dic['Males']
 	df_female = dic['Females']
 
+	#write_csv(df)
+
 	countries=get_country_names('GHE2015_Deaths-2000-country.xls')
 	#create a color map RGB, each tuple will be used for a bar	
 	customcmp = [(i/10.0, i/40.0, 0.05) for i in range(len(dic['Males']))]
@@ -192,8 +210,8 @@ if __name__=="__main__":
 	fig, (axMale, axFemale)	= plt.subplots(2,1, figsize=(10,8))
 
 	#set the disease name as the index, since df[coln].plot() uses the index a labels by default	
-	df_male.set_index('dname', drop=True, inplace=True)
-	df_female.set_index('dname', drop=True, inplace=True)
+	df_male.set_index('Disease Name', drop=True, inplace=True)
+	df_female.set_index('Disease Name', drop=True, inplace=True)
 
 	#create a bar chart of the column called country_code. This column has the number of deaths
 	df_male[country_code].plot(	kind='barh',  	#horizontal bar chart
