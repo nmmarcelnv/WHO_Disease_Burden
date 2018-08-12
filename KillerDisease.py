@@ -33,7 +33,7 @@ def get_top10_killers(deaths, Sex='Persons', country_code='USA'):
 
 
 def make_figure(males, females, country_code='USA'):
-
+	#https://plot.ly/python/pie-charts/
 	fig = {
   	"data": [
     	{
@@ -102,7 +102,7 @@ if __name__=="__main__":
 		filename = country_code+'_cause_of_death_2015.html',
 		show_link=True,
 		#output_type='div',
-		auto_open=False
+		auto_open=True
 	)
 
 	#print(plot)	
